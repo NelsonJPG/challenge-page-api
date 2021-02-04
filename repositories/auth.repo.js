@@ -66,77 +66,48 @@ export const authenticate = async ({ username, password }) => {
         let custom_error = new Error("authentication failed");
         custom_error.status = 403;
         custom_error.error = {details: ["wrong user/pass invalid credential"] }
+        custom_error.json = { error: "ola ke haze"}
         return custom_error
     } 
 }
 
 export const checkToken = async ({ headers }) => {
-     
-    let token = headers['authorization'];
-    if (!token) {
-        console.log(` user not logged in :: CHECK AUTH`);
-        let custom_error = new Error("Token not found");
-        custom_error.status = 401;
-        custom_error.error = {details: ["the user not logged in"] }
-        return custom_error
-    }
-
-    token = token.replace('Bearer ', '');
     
     // Verify if the token is valid
     try {
-
+        
+        let token = headers['authorization'];
+        if (!token) {
+            console.log(` user not logged in :: CHECK AUTH`);
+            let custom_error = new Error("Token not found");
+            custom_error.status = 401;
+            custom_error.error = {details: ["the user not logged in"] }
+            return custom_error
+        }
+    
+        token = token.replace('Bearer ', '');
+        
         const response = await jwt.verify(token, CONFIG.saltJwt);
         const tokenVerified = await SessionModel.findOne({'token': token});
-        console.log(token, tokenVerified)
+       
         if(tokenVerified) {
             return { token: response, code: 200, status: 200, message: "token check sucessfully"} 
         } 
-        
-        console.log(` Token expired :: CHECK AUTH`);
-        let custom_error = new Error("Token expired");
-        custom_error.status = 403;
-        custom_error.error = {details: ["the token was expired"] }
-        return custom_error;
-        
-
+         
     } catch(error) {
-
-        if(error.message === 'Token expired') {
-            // The token is already expired so I remove from UserSession table
-            const deletedTokenResponse = await SessionModel.deleteOne({token: headers['authorization']});
-            let custom_error = new Error("Token expired");
-            custom_error.status = 401;
-            custom_error.error = {details: ["the token was expired", deletedTokenResponse] }
+        if(error.message === 'jwt expired') {
+            console.log(` token expired :: CHECK AUTH`);
+            let custom_error = new Error("Token Expired");
+            custom_error.status = 403;
+            custom_error.error = {details: ["jwt expired"] }
             return custom_error;
-        
-        } 
-
-        let custom_error = new Error(error.message);
-        custom_error.status = error.status;
-        return custom_error;
+        }
+    
+        let custom_error = new Error("Token not found");
+        custom_error.status = 403;
+        custom_error.error = {details: ["the user not logged in"] }
+        return custom_error
         
     }
       
-}
-
-export const killSession = async ({ headers }) => {
-    
-    if (authentication.statusCode === 401 || authentication.statusCode === 400) {
-        console.log(`failed token ::: GET /logout`);
-        return authentication;
-    }
-
-    const { username } = await jwt.decode(headers['authorization'], {json:true});
-    const userRequester = await UserModel.findOne({'username': username});
-
-    if (userRequester) {
-        const session = await SessionModel.findOneAndDelete({'user': userRequester.id, 'token': req.headers['authorization']});
-        if(session) {
-            return {session: session._doc, message: "authentication has been kill sucessfully", code: 200, status: "OK"};
-        } else {
-            return {session: session._doc, message: "authentication failed kill", code: 202, status: "OK"};
-        }
-    }
-
 }

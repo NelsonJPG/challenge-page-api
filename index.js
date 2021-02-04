@@ -1,6 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import logger from "morgan";
+import cors from "cors";
 import helmet from "helmet";
 import routes from './routes';
 import pkg from './package.json';
@@ -13,19 +14,24 @@ import 'dotenv/config';
 
 let api = express();
 api.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Origin', process.env.ORIGIN_DOMAIN);
     res.header('Access-Control-Allow-Headers', 'Authorization, X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Allow-Request-Method');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
     res.header('Allow', 'GET, POST, OPTIONS, PUT, DELETE');
     next();
 });
 
-
 api.use(bodyParser.urlencoded({ extended: false }));
  
 // parse various different custom JSON types as JSON
 api.use(bodyParser.json({ type: "application/*+json" }));
 api.use(express.json());
+
+
+api.use(cors( {
+    origin: process.env.ORIGIN_DOMAIN,
+    optionsSuccessStatus: 200 // For legacy browser support
+}));
 
 api.set("pkg", pkg);
 api.use(logger('dev'));
@@ -43,7 +49,7 @@ api.use((err , req, res, next) => {
             details: err.errors
         }
     });
-  });
+});
 
 api.listen(  process.env.PORT || 3000, () => {
     console.log(`Welcome to API ${process.env.APP_NAME}`);

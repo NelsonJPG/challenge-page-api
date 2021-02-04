@@ -12,7 +12,7 @@ class PagesController {
 
             let authentication = await AuthRepo.checkToken(req);
             if(authentication && authentication.code !== 200){
-                return res.status(authentication.status).json({
+                return res.json({
                     message: authentication.message,
                     code: authentication.status,
                     error: authentication.error
@@ -21,8 +21,9 @@ class PagesController {
             // validacion unique 
 
             let pageExist = await PageRepo.getBySlug(slug(req.body.name));
+    
             if(pageExist){
-                return res.status(422).json({
+                return res.json({
                     message: "the page already exist",
                     status: "Rule Entity",
                     code: 422,
@@ -35,7 +36,7 @@ class PagesController {
 
             let page = await PageRepo.save(schema);
             if(!page){
-                return res.status(400).json({
+                return res.json({
                     message: "error to create page",
                     status: "Bad Request",
                     code: 400
@@ -57,6 +58,16 @@ class PagesController {
     async index(req, res, next){
         
         try {
+            
+            let authentication = await AuthRepo.checkToken(req);
+            if(authentication && authentication.code !== 200){
+                return res.json({
+                    message: authentication.message,
+                    code: authentication.status,
+                    error: authentication.error
+                })
+            }
+
             let pages = await PageRepo.getAll();
             
             let pagesFormat = pages;
@@ -68,7 +79,23 @@ class PagesController {
             return next(custom_error);    
         }
     }
+
+    async indexbyslug(req, res, next){
+
+        let page = await PageRepo.getBySlug(req.params.slug);
+        if(!page){
+            return res.json({
+                message: "page not found",
+                code: 404,
+                error: { details: "this page don't exist"}
+            })
+        }
+
+        return res.status(200).json({message: "pages has been found", status:"OK", code: 200, page: page});
+
+    }   
     
 }
+
 
 export default new PagesController;

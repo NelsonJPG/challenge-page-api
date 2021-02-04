@@ -7,5 +7,6 @@ const router = Router();
 
 // Create a new emission
 router.post("/login", AuthController.login);
+router.get("/logout", AuthController.logout);
 
 export default router;
